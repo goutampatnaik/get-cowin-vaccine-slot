@@ -1,0 +1,42 @@
+<html>
+
+<head>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<h2>Search available vaccination slots</h2>
+<div>
+  <label>Select age group</label>
+  <select id='AgeDropdown'>
+    <option value="18">18+</option>
+    <option value="45">45+</option>
+    <option value="60">60+</option>
+  </select>
+  <label>Select Date</label>
+  <input type="date" id='DateTextBox' />
+</div>
+<div>
+  <label>Search by District: </label>
+  <label>State</label>
+  <select id='StateDropdown' onchange='loadDistrictDropdown()'>
+    <option value="">(select)</option>
+  </select>
+  <label>District</label>
+  <select id='DistrictDropdown'></select>
+  <button onclick="searchByDistrict()">Go</button>
+</div>
+<div>
+  <label>Search by Pincode: </label>
+  <label>Pincode</label>
+  <input type="number" id='PincodeTextBox' />
+  <button onclick="searchByPincode()">Go</button>
+</div>
+<hr />
+<div>
+  <div id="ResultDiv"></div>
+  <table id='ResultTable'>
+  </table>
+</div>
+
+</html>
+
+<script src="get-vaccine-slot.js"></script>
