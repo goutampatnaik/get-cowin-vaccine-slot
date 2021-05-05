@@ -91,7 +91,8 @@ function getAvailableVaccineSlots(url, ageLimit) {
               return {
                 Date: s.date,
                 Available: s.available_capacity,
-                Timing: s.slots.join(', ')
+                Timing: s.slots.join(', '),
+                Vaccine: s.vaccine
               }
             })
           });
@@ -125,21 +126,21 @@ function getAvailableVaccineSlots(url, ageLimit) {
 
           // Center
           resultTable.rows[rowNumber].insertCell();
-          resultTable.rows[rowNumber].cells[0].innerHTML = `${r.Center} (${r.Payment}) <br/> ${r.Address}, Pin: ${r.Pincode}`;
+          resultTable.rows[rowNumber].cells[0].innerHTML = `<span class='center'>${r.Center}</span> <span class='${r.Payment.toLowerCase()}'>${r.Payment.toUpperCase() === 'PAID' ? 'PAID' : ''}</span> <br/> <span class='address'>${r.Address}, ${r.Pincode}</span>`;
           resultTable.rows[rowNumber].cells[0].className = 'center';
 
-          // Default values
-          for (let i = 1; i <= 7; i++) {
+          // Default values for available slots
+          for (let i = 0; i < 7; i++) {
             resultTable.rows[rowNumber].insertCell();
-            resultTable.rows[rowNumber].cells[i].innerHTML = '--';
+            resultTable.rows[rowNumber].cells[i + 1].innerHTML = '--';
           }
 
           // Set available slots
           r.Slots.forEach(s => {
             for (let i = 1; i < resultTable.rows[0].cells.length; i++) {
               if (Date.parse(resultTable.rows[0].cells[i].innerHTML) === Date.parse(s.Date)) {
-                resultTable.rows[rowNumber].cells[i].innerHTML = s.Available;
-                resultTable.rows[rowNumber].cells[i].className = 'available';
+                resultTable.rows[rowNumber].cells[i].innerHTML = `<span class='available'>${s.Available}</span> <span>${s.Vaccine}</span>`;
+                resultTable.rows[rowNumber].cells[i].className = 'slot';
               }
             };
           });
