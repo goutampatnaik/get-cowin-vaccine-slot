@@ -6,6 +6,10 @@ const pincodeTextBox = document.getElementById('PincodeTextBox');
 const dateTextBox = document.getElementById('DateTextBox');
 const resultTable = document.getElementById('ResultTable');
 
+/* Switch between Authenticated/Non-authenticated request */
+const token = '';
+const public = token ? '' : 'public/';
+
 function loadStateDropdown() {
   fetch('https://cdn-api.co-vin.in/api/v2/admin/location/states')
     .then(response => response.json())
@@ -36,18 +40,37 @@ function loadDistrictDropdown() {
 }
 
 function getSlotsByPinCode(pincode, date, ageLimit) {
-  let url = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin?pincode=${pincode}&date=${date}`;
+  let url = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/${public}calendarByPin?pincode=${pincode}&date=${date}`;
   getAvailableVaccineSlots(url, ageLimit);
 }
 
 function getSlotsByDistrict(districtId, date, ageLimit) {
-  let url = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=${districtId}&date=${date}`;
+  let url = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/${public}calendarByDistrict?district_id=${districtId}&date=${date}`;
   getAvailableVaccineSlots(url, ageLimit);
 }
 
 function getAvailableVaccineSlots(url, ageLimit) {
-  fetch(url)
-    .then(response => response.json())
+  const header = new Headers({
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/x-www-form-urlencoded'
+  });
+  
+  fetch(url, {
+    headers: header,
+    method: 'GET'
+  })
+    .then(response => {
+			if (!response.ok) {
+				throw Error(
+					JSON.stringify({
+						ResponseStatus: response.status,
+						ResponseStatusText: response.statusText
+					})
+				);
+			}
+
+			return response.json();
+		})
     .then(data => {
       let centersWithAvailableSlots = data.centers.filter(c => c.sessions.some(s => s.min_age_limit === ageLimit && s.available_capacity > 0));
       let result = [];
@@ -61,6 +84,7 @@ function getAvailableVaccineSlots(url, ageLimit) {
             City: element.block_name,
             Center: element.name,
             Pincode: element.pincode,
+            Address: element.address,
             Age: ageLimit,
             Payment: element.fee_type,
             Slots: availableSlots.map(s => {
@@ -101,7 +125,7 @@ function getAvailableVaccineSlots(url, ageLimit) {
 
           // Center
           resultTable.rows[rowNumber].insertCell();
-          resultTable.rows[rowNumber].cells[0].innerHTML = `${r.Center} (Pin: ${r.Pincode}, ${r.Payment})`;
+          resultTable.rows[rowNumber].cells[0].innerHTML = `${r.Center} (${r.Payment}) <br/> ${r.Address}, Pin: ${r.Pincode}`;
           resultTable.rows[rowNumber].cells[0].className = 'center';
 
           // Default values
@@ -121,18 +145,14 @@ function getAvailableVaccineSlots(url, ageLimit) {
           });
 
           rowNumber += 1;
-          ///////////////////////////////////////////////
-          // resultDiv.innerHTML += `<h3>${r.Center} (Pin: ${r.Pincode}, ${r.Payment})</h3>`;
-
-          // let table_slots = `<table><tr><th>Date</th><th>Available</th><th>Timing</th></tr>`;
-          // table_slots += r.Slots.map(s => `<tr><td>${s.Date}</td><td class='available'>${s.Available}</td><td>${s.Timing}</td>`).join('');
-          // table_slots += '</table>';
-
-          // resultDiv.innerHTML += table_slots;
-
-          //////////////////////////////////////
-
         });
+      }
+    })
+    .catch(error => {
+      error = JSON.parse(error.message);
+      if (error.hasOwnProperty('ResponseStatus')) {
+        if (error.ResponseStatus === 401)
+          alert('Session expired');
       }
     });
 }
@@ -165,13 +185,13 @@ function getInputDate() {
   return getFormattedDate(inputDate);
 }
 
-function getFormattedDate(date) {
-  return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+function getFormattedDate(date) {  
+  return `${padLeft(date.getDate(), 2, '0')}-${padLeft((date.getMonth() + 1), 2, '0')}-${date.getFullYear()}`;
 }
 
-function getFormattedDateFromString(dateString) {
-  const date = new Date(dateString);
-  return getFormattedDate(date);
+function getDateHeader(date) {
+  const options = { year: 'numeric', month: 'short', day: 'numeric' };
+  return date.toLocaleDateString('en-GB', options);
 }
 
 function clearResult() {
