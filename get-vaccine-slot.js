@@ -6,6 +6,8 @@ const pincodeTextBox = document.getElementById('PincodeTextBox');
 const dateTextBox = document.getElementById('DateTextBox');
 const resultTable = document.getElementById('ResultTable');
 
+const DAYS_IN_WEEK = 7;
+
 /* Switch between Authenticated/Non-authenticated request */
 const token = '';
 const public = token ? '' : 'public/';
@@ -52,7 +54,7 @@ function getSlotsByDistrict(districtId, date, ageLimit) {
 function getAvailableVaccineSlots(url, ageLimit) {
   const header = new Headers({
     'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/x-www-form-urlencoded'
+    'Content-Type': 'application/json'
   });
   
   fetch(url, {
@@ -103,50 +105,7 @@ function getAvailableVaccineSlots(url, ageLimit) {
         resultDiv.innerHTML = 'No slots found!';
       }
       else {
-        const startDate = new Date(getInputDate());
-
-        // Add header row
-        resultTable.insertRow(0);
-
-        // Center Name
-        resultTable.rows[0].appendChild(document.createElement("th"));
-        resultTable.rows[0].cells[0].innerHTML = 'Center';
-
-        // Add columns for each day in a 
-        // full week starting from input date
-        for (let i = 0; i < 7; i++) {
-          startDate.setDate(startDate.getDate() + (i == 0 ? i : 1));
-          resultTable.rows[0].appendChild(document.createElement("th"));
-          resultTable.rows[0].cells[i + 1].innerHTML = getFormattedDate(startDate);
-        }
-
-        let rowNumber = 1;
-        result.forEach(r => {
-          resultTable.insertRow(rowNumber);
-
-          // Center
-          resultTable.rows[rowNumber].insertCell();
-          resultTable.rows[rowNumber].cells[0].innerHTML = `<span class='center'>${r.Center}</span> <span class='${r.Payment.toLowerCase()}'>${r.Payment.toUpperCase() === 'PAID' ? 'PAID' : ''}</span> <br/> <span class='address'>${r.Address}, ${r.Pincode}</span>`;
-          resultTable.rows[rowNumber].cells[0].className = 'center';
-
-          // Default values for available slots
-          for (let i = 0; i < 7; i++) {
-            resultTable.rows[rowNumber].insertCell();
-            resultTable.rows[rowNumber].cells[i + 1].innerHTML = '--';
-          }
-
-          // Set available slots
-          r.Slots.forEach(s => {
-            for (let i = 1; i < resultTable.rows[0].cells.length; i++) {
-              if (Date.parse(resultTable.rows[0].cells[i].innerHTML) === Date.parse(s.Date)) {
-                resultTable.rows[rowNumber].cells[i].innerHTML = `<span class='available'>${s.Available}</span> <span>${s.Vaccine}</span>`;
-                resultTable.rows[rowNumber].cells[i].className = 'slot';
-              }
-            };
-          });
-
-          rowNumber += 1;
-        });
+        drawResultTable(result);
       }
     })
     .catch(error => {
@@ -156,6 +115,54 @@ function getAvailableVaccineSlots(url, ageLimit) {
           alert('Session expired');
       }
     });
+}
+
+function drawResultTable(data) {
+  const startDate = new Date(getInputDate());
+
+  // Add header row
+  resultTable.insertRow(0);
+
+  // Center Name
+  resultTable.rows[0].appendChild(document.createElement("th"));
+  resultTable.rows[0].cells[0].innerHTML = 'Center';
+
+  // Add columns for each day in a 
+  // full week starting from input date
+  for (let i = 0; i < DAYS_IN_WEEK; i++) {
+    startDate.setDate(startDate.getDate() + (i == 0 ? i : 1));
+    resultTable.rows[0].appendChild(document.createElement("th"));
+    resultTable.rows[0].cells[i + 1].innerHTML = getHeaderDate(startDate);
+  }
+
+  let rowNumber = 1;
+  data.forEach(r => {
+    resultTable.insertRow(rowNumber);
+
+    // Center
+    resultTable.rows[rowNumber].insertCell();
+    resultTable.rows[rowNumber].cells[0].innerHTML = `<span class='center'>${r.Center}</span> <span class='${r.Payment.toLowerCase()}'>${r.Payment.toUpperCase() === 'PAID' ? 'PAID' : ''}</span> <br/> <span class='address'>${r.Address}, ${r.Pincode}</span>`;
+    resultTable.rows[rowNumber].cells[0].className = 'center';
+
+    // Default values for available slots
+    for (let i = 0; i < DAYS_IN_WEEK; i++) {
+      resultTable.rows[rowNumber].insertCell();
+      resultTable.rows[rowNumber].cells[i + 1].innerHTML = '--';
+    }
+
+    // Set available slots
+    r.Slots.forEach(s => {
+      for (let i = 1; i < resultTable.rows[0].cells.length; i++) {
+        const headerDate = resultTable.rows[0].cells[i].innerHTML;
+        if (Date.parse(headerDate) === Date.parse(s.Date)) {
+          resultTable.rows[rowNumber].cells[i].innerHTML = `<span class='available'>${s.Available}</span> <span class='vaccine'>${s.Vaccine}</span>`;
+          resultTable.rows[rowNumber].cells[i].className = 'slot';
+        }
+      };
+    });
+
+    rowNumber += 1;
+  });
 }
 
 function setCurrentDate() {
@@ -190,7 +197,7 @@ function getFormattedDate(date) {
   return `${padLeft(date.getDate(), 2, '0')}-${padLeft((date.getMonth() + 1), 2, '0')}-${date.getFullYear()}`;
 }
 
-function getDateHeader(date) {
+function getHeaderDate(date) {
   const options = { year: 'numeric', month: 'short', day: 'numeric' };
   return date.toLocaleDateString('en-GB', options);
 }
