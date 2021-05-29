@@ -5,11 +5,11 @@
 </head>
 <h2>Search available vaccination slots</h2>
 <div>
-  <label>Select Date</label>
+  <label class='label-header'>Select Date</label>
   <input type="date" id='DateTextBox' required />
 </div>
 <div>
-  <label>Search by District: </label>
+  <label class='label-header'>Search by District: </label>
   <label>State</label>
   <select id='StateDropdown' onchange='loadDistrictDropdown()'>
     <option value="">(select)</option>
@@ -19,25 +19,27 @@
   <button onclick="searchByDistrict()">Go</button>
 </div>
 <div>
-  <label>Search by Pincode: </label>
+  <label class='label-header'>Search by Pincode: </label>
   <label>Pincode</label>
   <input type="number" id='PincodeTextBox' />
   <button onclick="searchByPincode()">Go</button>
 </div>
 <div>
-  <label>Select age group</label>
+  <label class='label-header'>Filters applied:</label>
+  <label>Age</label>
   <select id='AgeDropdown' onchange="drawResultTable()">
     <option value="18">18-44</option>
     <option value="45">45+</option>
   </select>
-  <label>Select Dose</label>
+  <label>Dose</label>
   <select id='DoseDropdown' onchange="drawResultTable()">
     <option value="1">Dose 1</option>
     <option value="2">Dose 2</option>
   </select>
 </div>
 <div>
-  <p class='total'>Total available slots: <span id='TotalSlots'></span></p>
+  <p class='total'>Doses available in <span id='District'></span> for selected filters : <span id='TotalSlots'></span>
+  </p>
 </div>
 <hr />
 <div>

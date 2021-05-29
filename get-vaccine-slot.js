@@ -7,6 +7,7 @@ const pincodeTextBox = document.getElementById('PincodeTextBox');
 const dateTextBox = document.getElementById('DateTextBox');
 const resultTable = document.getElementById('ResultTable');
 const totalSlotsSpan = document.getElementById('TotalSlots');
+const districtNameSpan = document.getElementById('District');
 
 const DAYS_IN_WEEK = 7;
 let totalSlots = 0;
@@ -14,8 +15,7 @@ let totalSlots = 0;
 let searchResult = [];
 
 /* Switch between Authenticated/Non-authenticated request */
-const token =
-	'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiI1NTQ3NTRmZC0yOTYxLTRmYWYtYjE5NC0yZjEzOGE2YzAyNzYiLCJ1c2VyX2lkIjoiNTU0NzU0ZmQtMjk2MS00ZmFmLWIxOTQtMmYxMzhhNmMwMjc2IiwidXNlcl90eXBlIjoiQkVORUZJQ0lBUlkiLCJtb2JpbGVfbnVtYmVyIjo3Njg0ODM3Mjk0LCJiZW5lZmljaWFyeV9yZWZlcmVuY2VfaWQiOjQwMjY4NjM3OTM3MzgwLCJzZWNyZXRfa2V5IjoiYjVjYWIxNjctNzk3Ny00ZGYxLTgwMjctYTYzYWExNDRmMDRlIiwic291cmNlIjoiY293aW4iLCJ1YSI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS85MC4wLjQ0MzAuMjEyIFNhZmFyaS81MzcuMzYiLCJkYXRlX21vZGlmaWVkIjoiMjAyMS0wNS0yOVQxMToyOTowNi4xMzJaIiwiaWF0IjoxNjIyMjg3NzQ2LCJleHAiOjE2MjIyODg2NDZ9.y06iHuMWu955onkeZWIgzz_npkclLCY90XOaEr6kgxs';
+const token = '';
 const public = token ? '' : 'public/';
 
 function loadStateDropdown() {
@@ -127,8 +127,20 @@ function getAvailableVaccineSlots(url) {
 
 function drawResultTable() {
 	clearResult();
+	// Selected age
 	const ageLimit = parseInt(ageDropdown.value);
-	const filterData = searchResult.filter(a => a.Slots.some(b => b.Age === ageLimit));
+	// Selected Dose
+	const selectedDose = doseDropdown.value;
+	// Filter result by age and atleast one slot exists, for selected dose, where vaccine is available
+	const filterData = searchResult.filter(result =>
+		result.Slots.some(
+			slot =>
+				slot.Age === ageLimit &&
+				((selectedDose === '1' && slot.Available_Dose1 > 0) ||
+					(selectedDose === '2' && slot.Available_Dose2 > 0))
+		)
+	);
+
 	if (filterData.length == 0) {
 		resultDiv.innerHTML = 'No slots found!';
 		return;
@@ -171,7 +183,11 @@ function drawResultTable() {
 		}
 
 		// Set available slots
-		r.Slots.forEach(s => {
+		r.Slots.filter(
+			slot =>
+				(selectedDose === '1' && slot.Available_Dose1 > 0) ||
+				(selectedDose === '2' && slot.Available_Dose2 > 0)
+		).forEach(s => {
 			for (let i = 1; i < resultTable.rows[0].cells.length; i++) {
 				const headerDate = new Date(resultTable.rows[0].cells[i].innerHTML);
 
@@ -188,14 +204,14 @@ function drawResultTable() {
 					let dailyAvailable = '';
 
 					// Slot 1
-					if (doseDropdown.value === '1' && s.Available_Dose1 > 0) {
+					if (selectedDose === '1') {
 						totalSlots += parseInt(s.Available_Dose1);
 						dailyAvailable = `<span class='available'>${s.Available_Dose1}</span>`;
 						dailyAvailable += `<div class='vaccine'>${s.Vaccine}</div>`;
 					}
 
 					// Slot 2
-					if (doseDropdown.value === '2' && s.Available_Dose2 > 0) {
+					if (selectedDose === '2') {
 						totalSlots += parseInt(s.Available_Dose2);
 						dailyAvailable = `<span class='available'>${s.Available_Dose2}</span>`;
 						dailyAvailable += `<div class='vaccine'>${s.Vaccine}</div>`;
@@ -212,7 +228,12 @@ function drawResultTable() {
 		rowNumber += 1;
 	});
 
-	totalSlotsSpan.innerHTML = `${totalSlots} (Dose: ${doseDropdown.value})`;
+	if (totalSlots === 0) {
+		clearResult();
+		resultDiv.innerHTML = 'No slots found!';
+	}
+
+	totalSlotsSpan.innerHTML = totalSlots;
 }
 
 function setCurrentDate() {
@@ -277,6 +298,9 @@ function searchByDistrict() {
 
 	if (!date) return;
 
+	districtNameSpan.innerHTML = `${
+		districtDropdown.options[districtDropdown.selectedIndex].text
+	}`;
 	getSlotsByDistrict(districtId, date);
 }
 

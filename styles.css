@@ -20,7 +20,7 @@ button {
 }
 
 label {
-	margin-right: 10px;
+	margin-right: 5px;
 }
 
 table {
@@ -58,6 +58,7 @@ td {
 
 td.center {
 	text-align: left;
+	min-width: 300px;
 }
 
 td.slot {
@@ -97,4 +98,8 @@ div.vaccine {
 
 p.total {
 	font-weight: bold;
+}
+
+.label-header {
+	font-weight: bolder;
 }
