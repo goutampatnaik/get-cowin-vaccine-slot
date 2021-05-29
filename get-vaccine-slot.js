@@ -1,5 +1,6 @@
 const resultDiv = document.getElementById('ResultDiv');
 const ageDropdown = document.getElementById('AgeDropdown');
+const doseDropdown = document.getElementById('DoseDropdown');
 const stateDropdown = document.getElementById('StateDropdown');
 const districtDropdown = document.getElementById('DistrictDropdown');
 const pincodeTextBox = document.getElementById('PincodeTextBox');
@@ -10,8 +11,11 @@ const totalSlotsSpan = document.getElementById('TotalSlots');
 const DAYS_IN_WEEK = 7;
 let totalSlots = 0;
 
+let searchResult = [];
+
 /* Switch between Authenticated/Non-authenticated request */
-const token = '';
+const token =
+	'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiI1NTQ3NTRmZC0yOTYxLTRmYWYtYjE5NC0yZjEzOGE2YzAyNzYiLCJ1c2VyX2lkIjoiNTU0NzU0ZmQtMjk2MS00ZmFmLWIxOTQtMmYxMzhhNmMwMjc2IiwidXNlcl90eXBlIjoiQkVORUZJQ0lBUlkiLCJtb2JpbGVfbnVtYmVyIjo3Njg0ODM3Mjk0LCJiZW5lZmljaWFyeV9yZWZlcmVuY2VfaWQiOjQwMjY4NjM3OTM3MzgwLCJzZWNyZXRfa2V5IjoiYjVjYWIxNjctNzk3Ny00ZGYxLTgwMjctYTYzYWExNDRmMDRlIiwic291cmNlIjoiY293aW4iLCJ1YSI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS85MC4wLjQ0MzAuMjEyIFNhZmFyaS81MzcuMzYiLCJkYXRlX21vZGlmaWVkIjoiMjAyMS0wNS0yOVQxMToyOTowNi4xMzJaIiwiaWF0IjoxNjIyMjg3NzQ2LCJleHAiOjE2MjIyODg2NDZ9.y06iHuMWu955onkeZWIgzz_npkclLCY90XOaEr6kgxs';
 const public = token ? '' : 'public/';
 
 function loadStateDropdown() {
@@ -43,17 +47,18 @@ function loadDistrictDropdown() {
 		});
 }
 
-function getSlotsByPinCode(pincode, date, ageLimit) {
+function getSlotsByPinCode(pincode, date) {
 	let url = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/${public}calendarByPin?pincode=${pincode}&date=${date}`;
-	getAvailableVaccineSlots(url, ageLimit);
+	getAvailableVaccineSlots(url);
 }
 
-function getSlotsByDistrict(districtId, date, ageLimit) {
+function getSlotsByDistrict(districtId, date) {
 	let url = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/${public}calendarByDistrict?district_id=${districtId}&date=${date}`;
-	getAvailableVaccineSlots(url, ageLimit);
+	getAvailableVaccineSlots(url);
 }
 
-function getAvailableVaccineSlots(url, ageLimit) {
+function getAvailableVaccineSlots(url) {
+	searchResult = [];
 	totalSlots = 0;
 	const header = new Headers({
 		Authorization: `Bearer ${token}`,
@@ -79,42 +84,38 @@ function getAvailableVaccineSlots(url, ageLimit) {
 		.then(data => {
 			let centersWithAvailableSlots = data.centers.filter(c =>
 				c.sessions.some(
-					s => s.min_age_limit === ageLimit && s.available_capacity > 0
+					s => s.available_capacity_dose1 > 0 || s.available_capacity_dose2 > 0
 				)
 			);
-			let result = [];
 
 			centersWithAvailableSlots.forEach(element => {
 				let availableSlots = element.sessions.filter(
-					s => s.min_age_limit === ageLimit && s.available_capacity > 0
+					s => s.available_capacity_dose1 > 0 || s.available_capacity_dose2 > 0
 				);
 
 				if (availableSlots.length > 0) {
-					result.push({
+					searchResult.push({
 						District: element.district_name,
 						City: element.block_name,
 						Center: element.name,
 						Pincode: element.pincode,
 						Address: element.address,
-						Age: ageLimit,
 						Payment: element.fee_type,
 						Slots: availableSlots.map(s => {
 							return {
 								Date: s.date,
-								Available: s.available_capacity,
+								Available_Dose1: s.available_capacity_dose1,
+								Available_Dose2: s.available_capacity_dose2,
 								Timing: s.slots.join(', '),
-								Vaccine: s.vaccine
+								Vaccine: s.vaccine,
+								Age: s.min_age_limit
 							};
 						})
 					});
 				}
 			});
 
-			if (result.length == 0) {
-				resultDiv.innerHTML = 'No slots found!';
-			} else {
-				drawResultTable(result);
-			}
+			drawResultTable();
 		})
 		.catch(error => {
 			error = JSON.parse(error.message);
@@ -124,7 +125,15 @@ function getAvailableVaccineSlots(url, ageLimit) {
 		});
 }
 
-function drawResultTable(data) {
+function drawResultTable() {
+	clearResult();
+	const ageLimit = parseInt(ageDropdown.value);
+	const filterData = searchResult.filter(a => a.Slots.some(b => b.Age === ageLimit));
+	if (filterData.length == 0) {
+		resultDiv.innerHTML = 'No slots found!';
+		return;
+	}
+
 	const startDate = new Date(dateTextBox.value);
 
 	// Add header row
@@ -143,7 +152,7 @@ function drawResultTable(data) {
 	}
 
 	let rowNumber = 1;
-	data.forEach(r => {
+	filterData.forEach(r => {
 		resultTable.insertRow(rowNumber);
 
 		// Center
@@ -176,11 +185,26 @@ function drawResultTable(data) {
 				);
 
 				if (headerDate.getTime() === slotDate.getTime()) {
-					totalSlots += parseInt(s.Available);
-					resultTable.rows[rowNumber].cells[
-						i
-					].innerHTML = `<span class='available'>${s.Available}</span> <span class='vaccine'>${s.Vaccine}</span>`;
-					resultTable.rows[rowNumber].cells[i].className = 'slot';
+					let dailyAvailable = '';
+
+					// Slot 1
+					if (doseDropdown.value === '1' && s.Available_Dose1 > 0) {
+						totalSlots += parseInt(s.Available_Dose1);
+						dailyAvailable = `<span class='available'>${s.Available_Dose1}</span>`;
+						dailyAvailable += `<div class='vaccine'>${s.Vaccine}</div>`;
+					}
+
+					// Slot 2
+					if (doseDropdown.value === '2' && s.Available_Dose2 > 0) {
+						totalSlots += parseInt(s.Available_Dose2);
+						dailyAvailable = `<span class='available'>${s.Available_Dose2}</span>`;
+						dailyAvailable += `<div class='vaccine'>${s.Vaccine}</div>`;
+					}
+
+					if (dailyAvailable !== '') {
+						resultTable.rows[rowNumber].cells[i].innerHTML = dailyAvailable;
+						resultTable.rows[rowNumber].cells[i].className = 'slot';
+					}
 				}
 			}
 		});
@@ -188,7 +212,7 @@ function drawResultTable(data) {
 		rowNumber += 1;
 	});
 
-	totalSlotsSpan.innerHTML = totalSlots;
+	totalSlotsSpan.innerHTML = `${totalSlots} (Dose: ${doseDropdown.value})`;
 }
 
 function setCurrentDate() {
@@ -238,11 +262,11 @@ function clearResult() {
 	totalSlotsSpan.innerHTML = 0;
 	resultDiv.innerHTML = '';
 	resultTable.innerHTML = '';
+	totalSlots = 0;
 }
 
 function searchByDistrict() {
 	clearResult();
-	const age = parseInt(ageDropdown.value);
 	const districtId = parseInt(districtDropdown.value);
 	const date = getInputDate();
 
@@ -253,12 +277,11 @@ function searchByDistrict() {
 
 	if (!date) return;
 
-	getSlotsByDistrict(districtId, date, age);
+	getSlotsByDistrict(districtId, date);
 }
 
 function searchByPincode() {
 	clearResult();
-	const age = parseInt(ageDropdown.value);
 	const pincode = parseInt(PincodeTextBox.value);
 	const date = getInputDate();
 
@@ -269,7 +292,7 @@ function searchByPincode() {
 
 	if (!date) return;
 
-	getSlotsByPinCode(pincode, date, age);
+	getSlotsByPinCode(pincode, date);
 }
 
 loadStateDropdown();

@@ -85,11 +85,16 @@ span.available {
 	background-color: steelblue;
 	padding: 3px 6px;
 	margin-bottom: 3px;
+	margin-right: 3px;
 	color: white;
 	border-radius: 10px;
 	width: auto;
 }
 
-span.vaccine {
+div.vaccine {
 	font-size: 0.85rem;
+}
+
+p.total {
+	font-weight: bold;
 }

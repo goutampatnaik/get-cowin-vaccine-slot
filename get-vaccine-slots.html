@@ -5,12 +5,6 @@
 </head>
 <h2>Search available vaccination slots</h2>
 <div>
-  <label>Select age group</label>
-  <select id='AgeDropdown'>
-    <option value="18">18-44</option>
-    <option value="45">45+</option>
-    <option value="60">All ages</option>
-  </select>
   <label>Select Date</label>
   <input type="date" id='DateTextBox' required />
 </div>
@@ -31,7 +25,19 @@
   <button onclick="searchByPincode()">Go</button>
 </div>
 <div>
-  <p>Total Slots: <span id='TotalSlots'></span></p>
+  <label>Select age group</label>
+  <select id='AgeDropdown' onchange="drawResultTable()">
+    <option value="18">18-44</option>
+    <option value="45">45+</option>
+  </select>
+  <label>Select Dose</label>
+  <select id='DoseDropdown' onchange="drawResultTable()">
+    <option value="1">Dose 1</option>
+    <option value="2">Dose 2</option>
+  </select>
+</div>
+<div>
+  <p class='total'>Total available slots: <span id='TotalSlots'></span></p>
 </div>
 <hr />
 <div>
